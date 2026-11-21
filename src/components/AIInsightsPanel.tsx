@@ -1,6 +1,8 @@
 import { Check, Copy, KeyRound, Lock, Save, Sparkles } from 'lucide-react';
 import { useEffect, useState, type FormEvent } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Link } from 'react-router-dom';
+import remarkGfm from 'remark-gfm';
 import { rankAgentsByROI } from '../engine/calculations';
 import type { AgentPLResult, Currency, TornadoItem } from '../engine/types';
 import {
@@ -491,8 +493,8 @@ export function AIInsightsPanel({
                 )}
               </button>
             </div>
-            <div className="mt-3 whitespace-pre-wrap text-xs leading-relaxed text-slate-800">
-              {insightsResult.insights}
+            <div className="ai-markdown mt-3 text-xs text-slate-800">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{insightsResult.insights}</ReactMarkdown>
             </div>
           </div>
         )}
