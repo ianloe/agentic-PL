@@ -51,9 +51,9 @@ export async function initDb(): Promise<void> {
 
     CREATE TABLE IF NOT EXISTS user_ai_settings (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      provider TEXT NOT NULL DEFAULT 'openai',
-      base_url TEXT NOT NULL DEFAULT '',
-      model TEXT NOT NULL DEFAULT 'gpt-4o-mini',
+      provider TEXT NOT NULL DEFAULT 'openrouter',
+      base_url TEXT NOT NULL DEFAULT 'https://openrouter.ai/api/v1',
+      model TEXT NOT NULL DEFAULT 'openai/gpt-4o-mini',
       api_key_encrypted TEXT NOT NULL DEFAULT '',
       temperature DOUBLE PRECISION NOT NULL DEFAULT 0.2,
       system_prompt TEXT NOT NULL DEFAULT '',

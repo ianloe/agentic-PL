@@ -28,6 +28,12 @@ const PROVIDER_PRESETS: Record<
   AIProvider,
   { label: string; baseUrl: string; model: string; needsKey: boolean }
 > = {
+  openrouter: {
+    label: 'OpenRouter (Default)',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    model: 'openai/gpt-4o-mini',
+    needsKey: true,
+  },
   openai: {
     label: 'OpenAI',
     baseUrl: 'https://api.openai.com/v1',
@@ -93,9 +99,9 @@ export function AIInsightsPanel({
   exchangeRate,
 }: AIInsightsPanelProps) {
   const [settings, setSettings] = useState<UserAISettings | null>(null);
-  const [provider, setProvider] = useState<AIProvider>('openai');
-  const [baseUrl, setBaseUrl] = useState('https://api.openai.com/v1');
-  const [model, setModel] = useState('gpt-4o-mini');
+  const [provider, setProvider] = useState<AIProvider>('openrouter');
+  const [baseUrl, setBaseUrl] = useState('https://openrouter.ai/api/v1');
+  const [model, setModel] = useState('openai/gpt-4o-mini');
   const [apiKey, setApiKey] = useState('');
   const [temperature, setTemperature] = useState(0.2);
   const [systemPrompt, setSystemPrompt] = useState('');

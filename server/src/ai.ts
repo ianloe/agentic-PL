@@ -1,4 +1,5 @@
 export type AIProvider =
+  | 'openrouter'
   | 'openai'
   | 'anthropic'
   | 'gemini'
@@ -15,6 +16,7 @@ export interface AISettingsConfig {
 }
 
 const DEFAULT_BASE_URLS: Record<AIProvider, string> = {
+  openrouter: 'https://openrouter.ai/api/v1',
   openai: 'https://api.openai.com/v1',
   anthropic: 'https://api.anthropic.com',
   gemini: 'https://generativelanguage.googleapis.com/v1beta',
@@ -96,7 +98,7 @@ export async function generateAIInsights(
     return text;
   }
 
-  // OpenAI, Ollama, and OpenAI-compatible endpoints
+  // OpenRouter, OpenAI, Ollama, and OpenAI-compatible endpoints
   if (config.provider !== 'ollama' && !config.apiKey) {
     throw new Error('API key is required for this provider.');
   }
@@ -107,12 +109,22 @@ export async function generateAIInsights(
   if (config.apiKey) {
     headers.Authorization = `Bearer ${config.apiKey}`;
   }
+  if (config.provider === 'openrouter') {
+    headers['X-Title'] = 'Agentic P&L Calculator';
+  }
+
+  const defaultModel =
+    config.provider === 'openrouter'
+      ? 'openai/gpt-4o-mini'
+      : config.provider === 'ollama'
+        ? 'llama3.2'
+        : 'gpt-4o-mini';
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
     headers,
     body: JSON.stringify({
-      model: config.model || (config.provider === 'ollama' ? 'llama3.2' : 'gpt-4o-mini'),
+      model: config.model || defaultModel,
       temperature: config.temperature,
       messages: [
         { role: 'system', content: systemInstruction },

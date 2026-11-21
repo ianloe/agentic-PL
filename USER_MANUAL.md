@@ -212,7 +212,7 @@ Portfolio metrics (`AgentCostPerTask`, `ROI`, `PaybackPeriod`, `BreakEvenVolume`
 ## 9. AI Insights (`/insights`)
 
 Signed-in users can configure their own LLM provider to generate executive commentary grounded in their active P&L numbers:
-- Supported providers: **OpenAI**, **Anthropic (Claude)**, **Google Gemini**, **Ollama (Local)**, and **OpenAI-Compatible** endpoints.
+- Supported providers: **OpenRouter** (default), **OpenAI**, **Anthropic (Claude)**, **Google Gemini**, **Ollama (Local)**, and **OpenAI-Compatible** endpoints.
 - API keys are encrypted at rest in PostgreSQL using **AES-256-GCM** and are never sent back to the browser in plaintext.
 - Includes one-click prompts (**Executive Board Summary**, **Payback & Risk Critique**, **Cost Optimisation Plan**, **Portfolio Prioritisation**) and custom prompt support.
 

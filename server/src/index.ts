@@ -326,6 +326,7 @@ app.delete('/api/assessments/:id', requireAuth, async (req: AuthenticatedRequest
 
 // User AI Provider Settings
 const VALID_PROVIDERS: AIProvider[] = [
+  'openrouter',
   'openai',
   'anthropic',
   'gemini',
@@ -353,9 +354,9 @@ app.get('/api/ai/settings', requireAuth, async (req: AuthenticatedRequest, res) 
     if (!row) {
       res.json({
         settings: {
-          provider: 'openai' as AIProvider,
-          baseUrl: 'https://api.openai.com/v1',
-          model: 'gpt-4o-mini',
+          provider: 'openrouter' as AIProvider,
+          baseUrl: 'https://openrouter.ai/api/v1',
+          model: 'openai/gpt-4o-mini',
           temperature: 0.2,
           systemPrompt: '',
           hasApiKey: false,

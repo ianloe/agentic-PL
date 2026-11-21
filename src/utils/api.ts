@@ -136,6 +136,7 @@ export async function deleteAdminUser(id: string): Promise<void> {
 }
 
 export type AIProvider =
+  | 'openrouter'
   | 'openai'
   | 'anthropic'
   | 'gemini'
