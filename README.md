@@ -6,44 +6,61 @@ For a complete section-by-section guide and detailed mathematical derivations wi
 
 ## Features
 
+- **Aegis-Style Multi-Page Console:** Dedicated pages for Executive Overview (`/`), Workforce & Inputs (`/agents`), P&L Statement (`/statement`), Charts & Sensitivity (`/analytics`), AI Insights (`/insights`), Scenarios (`/scenarios`), Saved & History (`/vault`), User Manual (`/manual`), and Admin Users (`/admin`).
 - **Digital Workforce Modelling (up to 10 agents):** Configure task volume, human baseline handling time and loaded hourly cost, LLM token usage and pricing, model calls, tool/API fees, human-in-the-loop review rates, fixed and ongoing platform costs, error rates, 12-month adoption ramps, and risk reserves.
 - **Monthly P&L Statement (12 and 36 months):** Tracks Baseline cost, Agent run cost, Human review cost, Fixed and platform cost, Error cost, Risk reserve, Net saving, and Cumulative net saving with accounting-style formatting.
 - **Executive KPI Cards & Charts:** Cost per task (baseline vs agent), monthly net saving, payback period, 3-year ROI, break-even volume, capacity released in hours, cumulative cash flow with break-even marker, stacked monthly cost composition, and a sensitivity tornado chart.
+- **AI Insights & Per-User Provider Settings (`/insights`):** Signed-in users can configure **OpenRouter** (default), **OpenAI**, **Anthropic (Claude)**, **Google Gemini**, **Ollama (Local)**, or **OpenAI-Compatible** endpoints. API keys are encrypted at rest with AES-256-GCM in PostgreSQL, and responses render in GitHub Flavored Markdown.
 - **Live Sensitivity & Scenario Comparison:** Real-time stress-testing sliders (volume, token price, review rate, error rate, adoption speed) and side-by-side comparison for up to 3 saved scenarios (`Conservative`, `Base`, `Optimistic`).
 - **Portfolio Roll-Up & ROI Ranking:** Consolidates all agents into a single P&L and ranks them by 3-year ROI.
+- **Accounts, Vault & Bot-Safe Administration:** Sign in to save workspace configurations and audit-ready past assessments in PostgreSQL. Public self-registration is disabled (`HTTP 403`) to prevent bot signups; administrators provision accounts via `/admin` and `.env` initial admin seeding.
+- **Built-In User Manual (`/manual`):** Renders [USER_MANUAL.md](./USER_MANUAL.md) inside the app with KaTeX mathematical typesetting and a one-click Markdown download.
 - **Currency & Offline Persistence:** Toggle between `SGD` and `USD` with a configurable exchange rate (default `1 USD = 1.35 SGD`). All state is persisted locally in `localStorage`.
 - **Export & Print:** Download the 12-month or 36-month P&L as CSV, or print a clean one-page A4 executive summary.
 
 ## Tech Stack
 
-- React 19, TypeScript, Vite
-- Tailwind CSS v4
-- Recharts
-- Vitest (unit tests for the calculation engine)
+- **Frontend:** React 19, TypeScript, React Router, Tailwind CSS v4, Recharts, `react-markdown` + `remark-gfm` + `rehype-katex`, Vite
+- **Backend:** Node.js, Express, TypeScript, JWT (`jsonwebtoken`), `bcryptjs`, AES-256-GCM key encryption
+- **Database & Packaging:** PostgreSQL 16, Nginx, Docker Compose
+- **Testing:** Vitest (unit tests and P&L reconciliation checks)
 
 ## Project Structure
 
 ```text
 src/
   engine/
-    types.ts              # Core data model types
-    calculations.ts       # Pure P&L, portfolio, sensitivity, and validation functions
-    calculations.test.ts  # Unit tests and arithmetic reconciliation checks
-    demoData.ts           # Preloaded demo agents (Invoice, Triage, Contract Review)
+    types.ts                # Core data model types
+    calculations.ts         # Pure P&L, portfolio, sensitivity, and validation functions
+    calculations.test.ts    # Unit tests and arithmetic reconciliation checks
+    demoData.ts             # Preloaded demo agents (Invoice, Triage, Contract Review)
   components/
-    AgentInputPanel.tsx   # Agent selector, input forms, and validation warnings
-    PLTable.tsx           # 12/36-month P&L table with sticky headers and CSV export
-    MetricCards.tsx       # Executive KPI summary cards
-    ChartsPanel.tsx       # Cash flow, cost composition, and tornado charts
-    SensitivityPanel.tsx  # Live sensitivity sliders
-    ScenariosPanel.tsx    # Save/compare/load up to 3 named scenarios
-    PortfolioRanking.tsx  # Agent ranking table by 3-year ROI
-    PrintSummary.tsx      # One-page A4 print layout
-    Toggletip.tsx         # Accessible field-level help tooltips
+    AegisShell.tsx          # Dark-slate left navigation rail and top utility bar
+    AgentInputPanel.tsx     # Agent selector, input forms, and validation warnings
+    PLTable.tsx             # 12/36-month P&L table with sticky headers and CSV export
+    MetricCards.tsx         # Executive KPI summary cards
+    ChartsPanel.tsx         # Cash flow, cost composition, and tornado charts
+    SensitivityPanel.tsx    # Live sensitivity sliders
+    AIInsightsPanel.tsx     # Per-user AI provider config and Markdown insights generator
+    ScenariosPanel.tsx      # Save/compare/load up to 3 named scenarios
+    PortfolioRanking.tsx    # Agent ranking table by 3-year ROI
+    WorkspaceVaultPanel.tsx # Sign-in, stored configurations, and past assessments
+    AdminPanel.tsx          # Admin user provisioning and role management
+    UserManualPanel.tsx     # In-app rendered USER_MANUAL.md with KaTeX math
+    PrintSummary.tsx        # One-page A4 print layout
+    Toggletip.tsx           # Accessible field-level help tooltips
   utils/
-    format.ts             # SGD/USD accounting formatters
-    exportCsv.ts          # CSV generator
-    storage.ts            # localStorage persistence
+    api.ts                  # Authenticated backend API client
+    format.ts               # SGD/USD accounting formatters
+    exportCsv.ts            # CSV generator
+    storage.ts              # localStorage persistence
+server/
+  src/
+    index.ts                # Express API routes (auth, admin, vault, AI insights)
+    db.ts                   # PostgreSQL pool, schema migration, and .env admin seeding
+    auth.ts                 # JWT signing and role-based middleware
+    crypto.ts               # AES-256-GCM encryption for user AI API keys
+    ai.ts                   # Multi-provider AI adapter (OpenRouter, OpenAI, Anthropic, Gemini, Ollama)
 ```
 
 ## Running with Docker Compose
