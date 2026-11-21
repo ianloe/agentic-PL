@@ -1,5 +1,5 @@
-import { Printer, RotateCcw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Printer, RotateCcw, User } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AgentInputPanel } from './components/AgentInputPanel';
 import { ChartsPanel } from './components/ChartsPanel';
 import { MetricCards } from './components/MetricCards';
@@ -8,6 +8,7 @@ import { PortfolioRanking } from './components/PortfolioRanking';
 import { PrintSummary } from './components/PrintSummary';
 import { ScenariosPanel } from './components/ScenariosPanel';
 import { SensitivityPanel } from './components/SensitivityPanel';
+import { WorkspaceVaultPanel } from './components/WorkspaceVaultPanel';
 import {
   DEFAULT_SENSITIVITY,
   calculateAgentPL,
@@ -16,15 +17,32 @@ import {
 } from './engine/calculations';
 import { createBlankAgent } from './engine/demoData';
 import type { AgentInput, Currency, SavedScenario, SensitivitySettings } from './engine/types';
+import {
+  type AuthUser,
+  type PastAssessmentRecord,
+  type StoredConfigPayload,
+  type StoredConfigurationRecord,
+  deleteAssessment,
+  deleteConfiguration,
+  fetchAssessments,
+  fetchConfigurations,
+  fetchCurrentUser,
+  loginUser,
+  registerUser,
+  saveAssessment,
+  saveConfiguration,
+  setAuthToken,
+} from './utils/api';
 import { getDefaultState, loadPersistedState, savePersistedState } from './utils/storage';
 
-type TabKey = 'pl' | 'charts' | 'sensitivity' | 'scenarios';
+type TabKey = 'pl' | 'charts' | 'sensitivity' | 'scenarios' | 'vault';
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'pl', label: 'P&L Statement' },
   { key: 'charts', label: 'Charts' },
   { key: 'sensitivity', label: 'Sensitivity' },
   { key: 'scenarios', label: 'Scenarios' },
+  { key: 'vault', label: 'Saved & History' },
 ];
 
 export function App() {
@@ -37,6 +55,39 @@ export function App() {
   const [sensitivity, setSensitivity] = useState<SensitivitySettings>(initial.sensitivity);
   const [scenarios, setScenarios] = useState<SavedScenario[]>(initial.scenarios);
   const [activeTab, setActiveTab] = useState<TabKey>('pl');
+
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [configurations, setConfigurations] = useState<StoredConfigurationRecord[]>([]);
+  const [assessments, setAssessments] = useState<PastAssessmentRecord[]>([]);
+
+  const loadVaultData = useCallback(async () => {
+    try {
+      const [cfgs, asms] = await Promise.all([fetchConfigurations(), fetchAssessments()]);
+      setConfigurations(cfgs);
+      setAssessments(asms);
+    } catch {
+      // Ignore network errors when running offline
+    }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetchCurrentUser()
+      .then((u) => {
+        if (!active) return;
+        setUser(u);
+        if (u) {
+          loadVaultData();
+        }
+      })
+      .finally(() => {
+        if (active) setAuthLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [loadVaultData]);
 
   useEffect(() => {
     savePersistedState({
@@ -278,6 +329,15 @@ export function App() {
               <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
               Reset
             </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab('vault')}
+              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <User className="h-3.5 w-3.5 text-blue-900" aria-hidden="true" />
+              {user ? user.name : 'Sign in'}
+            </button>
           </div>
         </div>
       </header>
@@ -419,6 +479,94 @@ export function App() {
                       onDeleteScenario={handleDeleteScenario}
                       currency={currency}
                       exchangeRate={exchangeRate}
+                    />
+                  )}
+                </div>
+
+                <div
+                  role="tabpanel"
+                  aria-labelledby="tab-vault"
+                  hidden={activeTab !== 'vault'}
+                >
+                  {activeTab === 'vault' && (
+                    <WorkspaceVaultPanel
+                      user={user}
+                      authLoading={authLoading}
+                      configurations={configurations}
+                      assessments={assessments}
+                      onLogin={async (email, password) => {
+                        const res = await loginUser(email, password);
+                        setUser(res.user);
+                        await loadVaultData();
+                      }}
+                      onRegister={async (email, password, name) => {
+                        const res = await registerUser(email, password, name);
+                        setUser(res.user);
+                        await loadVaultData();
+                      }}
+                      onLogout={() => {
+                        setAuthToken(null);
+                        setUser(null);
+                        setConfigurations([]);
+                        setAssessments([]);
+                      }}
+                      onSaveConfiguration={async (name) => {
+                        const payload: StoredConfigPayload = {
+                          agents,
+                          selectedAgentId,
+                          viewScope,
+                          currency,
+                          exchangeRate,
+                          sensitivity,
+                          scenarios,
+                        };
+                        await saveConfiguration(name, payload);
+                        await loadVaultData();
+                      }}
+                      onLoadConfiguration={(cfg) => {
+                        setAgents(cfg.agents);
+                        setSelectedAgentId(cfg.selectedAgentId || cfg.agents[0]?.id || '');
+                        setViewScope(cfg.viewScope);
+                        setCurrency(cfg.currency);
+                        setExchangeRate(cfg.exchangeRate);
+                        setSensitivity(cfg.sensitivity);
+                        setScenarios(cfg.scenarios ?? []);
+                        setActiveTab('pl');
+                      }}
+                      onDeleteConfiguration={async (id) => {
+                        await deleteConfiguration(id);
+                        await loadVaultData();
+                      }}
+                      onSaveAssessment={async (title) => {
+                        await saveAssessment({
+                          title,
+                          scope: viewScope,
+                          currency,
+                          exchangeRate,
+                          summaryMetrics: activeResult.metrics,
+                          snapshot: {
+                            agents,
+                            selectedAgentId,
+                            sensitivity,
+                          },
+                        });
+                        await loadVaultData();
+                      }}
+                      onLoadAssessment={(a) => {
+                        setAgents(a.snapshot_json.agents);
+                        setSelectedAgentId(
+                          a.snapshot_json.selectedAgentId || a.snapshot_json.agents[0]?.id || ''
+                        );
+                        setViewScope(a.scope);
+                        setCurrency(a.currency);
+                        setExchangeRate(a.exchange_rate);
+                        setSensitivity(a.snapshot_json.sensitivity);
+                        setActiveTab('pl');
+                      }}
+                      onDeleteAssessment={async (id) => {
+                        await deleteAssessment(id);
+                        await loadVaultData();
+                      }}
                     />
                   )}
                 </div>

@@ -44,6 +44,18 @@ src/
     storage.ts            # localStorage persistence
 ```
 
+## Running with Docker Compose
+
+The repository includes a complete `docker-compose.yml` stack with PostgreSQL 16 (`db`), the Express API (`api`), and the Nginx-served React frontend (`web`):
+
+```bash
+docker compose up --build -d
+```
+
+- Web app: `http://localhost:8080`
+- API health check: `http://localhost:4000/api/health`
+- PostgreSQL: `localhost:5432` (persisted in the `pgdata` volume)
+
 ## Running Locally
 
 ```bash
