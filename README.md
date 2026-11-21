@@ -1,6 +1,8 @@
 # Agentic P&L Calculator
 
-A client-side single-page application for executives and finance leaders to model the unit economics and 36-month profit and loss (P&L) statement of an AI agent workforce.
+A client-side and full-stack application for executives and finance leaders to model the unit economics and 36-month profit and loss (P&L) statement of an AI agent workforce.
+
+For a complete section-by-section guide and detailed mathematical derivations with worked examples, see [USER_MANUAL.md](./USER_MANUAL.md).
 
 ## Features
 
