@@ -12,6 +12,7 @@ import { PortfolioRanking } from './components/PortfolioRanking';
 import { PrintSummary } from './components/PrintSummary';
 import { ScenariosPanel } from './components/ScenariosPanel';
 import { SensitivityPanel } from './components/SensitivityPanel';
+import { UserManualPanel } from './components/UserManualPanel';
 import { WorkspaceVaultPanel } from './components/WorkspaceVaultPanel';
 import {
   DEFAULT_SENSITIVITY,
@@ -552,6 +553,24 @@ export function App() {
                 </div>
 
                 <AdminPanel currentUser={user} />
+              </div>
+            }
+          />
+
+          <Route
+            path="/manual"
+            element={
+              <div className="space-y-5">
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                    User Manual &amp; Formula Reference
+                  </h1>
+                  <p className="text-xs text-slate-500">
+                    Section-by-section guide and mathematical definitions for the Agentic P&amp;L Calculator.
+                  </p>
+                </div>
+
+                <UserManualPanel />
               </div>
             }
           />

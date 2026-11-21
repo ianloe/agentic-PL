@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BookOpen,
   Bot,
   Database,
   FileSpreadsheet,
@@ -42,6 +43,7 @@ const NAV_ITEMS = [
   { to: '/insights', label: 'AI Insights', icon: Sparkles, end: false },
   { to: '/scenarios', label: 'Scenarios', icon: GitCompare, end: false },
   { to: '/vault', label: 'Saved & History', icon: Database, end: false },
+  { to: '/manual', label: 'User Manual', icon: BookOpen, end: false },
 ];
 
 export function AegisShell({
