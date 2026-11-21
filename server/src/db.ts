@@ -1,3 +1,5 @@
+import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { Pool } from 'pg';
 
 const connectionString =
@@ -14,8 +16,12 @@ export async function initDb(): Promise<void> {
       email TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
       password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
+
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';
 
     CREATE TABLE IF NOT EXISTS stored_configurations (
       id TEXT PRIMARY KEY,
@@ -43,4 +49,31 @@ export async function initDb(): Promise<void> {
     CREATE INDEX IF NOT EXISTS idx_past_assessments_user
       ON past_assessments(user_id, created_at DESC);
   `);
+
+  // Ensure ian@ianloe.net is promoted to admin if already present
+  await pool.query(`UPDATE users SET role = 'admin' WHERE email = 'ian@ianloe.net'`);
+
+  // Seed or promote initial admin from environment variables (.env)
+  const adminEmail = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD ?? '';
+  const adminName = (process.env.ADMIN_NAME ?? 'Administrator').trim();
+
+  if (adminEmail && adminPassword) {
+    const existing = await pool.query<{ id: string }>(
+      'SELECT id FROM users WHERE email = $1',
+      [adminEmail]
+    );
+    if (existing.rows.length > 0) {
+      await pool.query(`UPDATE users SET role = 'admin' WHERE email = $1`, [adminEmail]);
+    } else {
+      const id = crypto.randomUUID();
+      const passwordHash = await bcrypt.hash(adminPassword, 10);
+      await pool.query(
+        `INSERT INTO users (id, email, name, password_hash, role)
+         VALUES ($1, $2, $3, $4, 'admin')`,
+        [id, adminEmail, adminName, passwordHash]
+      );
+      console.log(`Seeded initial admin user: ${adminEmail}`);
+    }
+  }
 }

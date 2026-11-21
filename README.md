@@ -46,9 +46,12 @@ src/
 
 ## Running with Docker Compose
 
-The repository includes a complete `docker-compose.yml` stack with PostgreSQL 16 (`db`), the Express API (`api`), and the Nginx-served React frontend (`web`):
+The repository includes a complete `docker-compose.yml` stack with PostgreSQL 16 (`db`), the Express API (`api`), and the Nginx-served React frontend (`web`).
+
+Before starting, copy `.env.example` to `.env` and set your initial administrator credentials (`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NAME`) and `JWT_SECRET`. Public registration is disabled to prevent automated bot signups; administrators can provision additional users from the **Admin Users** page (`/admin`).
 
 ```bash
+cp .env.example .env
 docker compose up --build -d
 ```
 

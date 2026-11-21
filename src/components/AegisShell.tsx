@@ -8,6 +8,7 @@ import {
   Menu,
   Printer,
   RotateCcw,
+  Shield,
   ShieldCheck,
   User,
   X,
@@ -106,6 +107,23 @@ export function AegisShell({
               </NavLink>
             );
           })}
+
+          {user?.role === 'admin' && (
+            <NavLink
+              to="/admin"
+              onClick={() => setMobileNavOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-medium transition-colors ${
+                  isActive
+                    ? 'bg-blue-600/20 text-white ring-1 ring-blue-500/40'
+                    : 'text-slate-400 hover:bg-slate-900 hover:text-slate-100'
+                }`
+              }
+            >
+              <Shield className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>Admin Users</span>
+            </NavLink>
+          )}
         </nav>
       </div>
 

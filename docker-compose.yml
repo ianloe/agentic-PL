@@ -27,6 +27,9 @@ services:
       PORT: 4000
       DATABASE_URL: postgres://${POSTGRES_USER:-agentic}:${POSTGRES_PASSWORD:-agentic_secret}@db:5432/${POSTGRES_DB:-agentic_pl}
       JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
     ports:
       - "4000:4000"
 

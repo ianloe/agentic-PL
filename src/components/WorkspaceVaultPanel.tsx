@@ -1,4 +1,4 @@
-import { BookmarkPlus, History, LogIn, LogOut, Save, Trash2, UserPlus } from 'lucide-react';
+import { BookmarkPlus, History, LogIn, LogOut, Save, Trash2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import type {
   AuthUser,
@@ -14,7 +14,6 @@ interface WorkspaceVaultPanelProps {
   configurations: StoredConfigurationRecord[];
   assessments: PastAssessmentRecord[];
   onLogin: (email: string, password: string) => Promise<void>;
-  onRegister: (email: string, password: string, name: string) => Promise<void>;
   onLogout: () => void;
   onSaveConfiguration: (name: string) => Promise<void>;
   onLoadConfiguration: (config: StoredConfigPayload) => void;
@@ -30,7 +29,6 @@ export function WorkspaceVaultPanel({
   configurations,
   assessments,
   onLogin,
-  onRegister,
   onLogout,
   onSaveConfiguration,
   onLoadConfiguration,
@@ -39,10 +37,8 @@ export function WorkspaceVaultPanel({
   onLoadAssessment,
   onDeleteAssessment,
 }: WorkspaceVaultPanelProps) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -54,11 +50,7 @@ export function WorkspaceVaultPanel({
     setError(null);
     setSubmitting(true);
     try {
-      if (mode === 'login') {
-        await onLogin(email, password);
-      } else {
-        await onRegister(email, password, name);
-      }
+      await onLogin(email, password);
       setPassword('');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed.');
@@ -78,27 +70,12 @@ export function WorkspaceVaultPanel({
   if (!user) {
     return (
       <div className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-6">
-        <h3 className="text-sm font-semibold text-slate-900">
-          {mode === 'login' ? 'Sign in to Workspace Vault' : 'Create Workspace Account'}
-        </h3>
+        <h3 className="text-sm font-semibold text-slate-900">Sign in to Workspace Vault</h3>
         <p className="mt-1 text-xs text-slate-500">
           Store configurations and record past P&amp;L assessments in PostgreSQL. Local browser storage remains active offline.
         </p>
 
         <form onSubmit={handleAuthSubmit} className="mt-4 space-y-3">
-          {mode === 'register' && (
-            <div>
-              <label className="block text-xs font-medium text-slate-700">Full name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Alex Tan"
-                className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-900 focus:border-blue-800 focus:outline-none"
-              />
-            </div>
-          )}
-
           <div>
             <label className="block text-xs font-medium text-slate-700">Email address</label>
             <input
@@ -135,34 +112,14 @@ export function WorkspaceVaultPanel({
             disabled={submitting}
             className="inline-flex w-full items-center justify-center gap-1.5 rounded-md bg-blue-900 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
           >
-            {mode === 'login' ? (
-              <>
-                <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
-                {submitting ? 'Signing in...' : 'Sign in'}
-              </>
-            ) : (
-              <>
-                <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
-                {submitting ? 'Creating account...' : 'Create account'}
-              </>
-            )}
+            <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
+            {submitting ? 'Signing in...' : 'Sign in'}
           </button>
         </form>
 
-        <div className="mt-4 border-t border-slate-100 pt-3 text-center">
-          <button
-            type="button"
-            onClick={() => {
-              setMode(mode === 'login' ? 'register' : 'login');
-              setError(null);
-            }}
-            className="text-xs font-medium text-blue-900 hover:underline"
-          >
-            {mode === 'login'
-              ? 'Need an account? Register here'
-              : 'Already have an account? Sign in'}
-          </button>
-        </div>
+        <p className="mt-4 border-t border-slate-100 pt-3 text-center text-[11px] text-slate-500">
+          Accounts are provisioned by an administrator to prevent automated signups.
+        </p>
       </div>
     );
   }

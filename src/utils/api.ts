@@ -6,6 +6,11 @@ export interface AuthUser {
   id: string;
   email: string;
   name: string;
+  role: 'admin' | 'user';
+}
+
+export interface AdminUserRecord extends AuthUser {
+  created_at: string;
 }
 
 export interface StoredConfigPayload {
@@ -82,19 +87,6 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
   return data;
 }
 
-export async function registerUser(
-  email: string,
-  password: string,
-  name: string
-): Promise<{ token: string; user: AuthUser }> {
-  const data = await apiFetch<{ token: string; user: AuthUser }>('/auth/register', {
-    method: 'POST',
-    body: JSON.stringify({ email, password, name }),
-  });
-  setAuthToken(data.token);
-  return data;
-}
-
 export async function loginUser(
   email: string,
   password: string
@@ -105,6 +97,42 @@ export async function loginUser(
   });
   setAuthToken(data.token);
   return data;
+}
+
+export async function fetchAdminUsers(): Promise<AdminUserRecord[]> {
+  const data = await apiFetch<{ users: AdminUserRecord[] }>('/admin/users');
+  return data.users;
+}
+
+export async function createAdminUser(payload: {
+  email: string;
+  name: string;
+  password: string;
+  role: 'admin' | 'user';
+}): Promise<AdminUserRecord> {
+  const data = await apiFetch<{ user: AdminUserRecord }>('/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+  return data.user;
+}
+
+export async function updateAdminUserRole(
+  id: string,
+  role: 'admin' | 'user'
+): Promise<AdminUserRecord> {
+  const data = await apiFetch<{ user: AdminUserRecord }>(
+    `/admin/users/${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }
+  );
+  return data.user;
+}
+
+export async function deleteAdminUser(id: string): Promise<void> {
+  await apiFetch(`/admin/users/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 export async function fetchCurrentUser(): Promise<AuthUser | null> {

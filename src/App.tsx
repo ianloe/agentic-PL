@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AegisShell } from './components/AegisShell';
+import { AdminPanel } from './components/AdminPanel';
 import { AgentInputPanel } from './components/AgentInputPanel';
 import { ChartsPanel } from './components/ChartsPanel';
 import { MetricCards } from './components/MetricCards';
@@ -30,7 +31,6 @@ import {
   fetchConfigurations,
   fetchCurrentUser,
   loginUser,
-  registerUser,
   saveAssessment,
   saveConfiguration,
   setAuthToken,
@@ -443,11 +443,6 @@ export function App() {
                     setUser(res.user);
                     await loadVaultData();
                   }}
-                  onRegister={async (email, password, name) => {
-                    const res = await registerUser(email, password, name);
-                    setUser(res.user);
-                    await loadVaultData();
-                  }}
                   onLogout={() => {
                     setAuthToken(null);
                     setUser(null);
@@ -512,6 +507,24 @@ export function App() {
                     await loadVaultData();
                   }}
                 />
+              </div>
+            }
+          />
+
+          <Route
+            path="/admin"
+            element={
+              <div className="space-y-5">
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                    User Administration
+                  </h1>
+                  <p className="text-xs text-slate-500">
+                    Manually provision user and administrator accounts.
+                  </p>
+                </div>
+
+                <AdminPanel currentUser={user} />
               </div>
             }
           />
