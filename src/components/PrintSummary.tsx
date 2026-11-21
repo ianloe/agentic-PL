@@ -187,6 +187,10 @@ export function PrintSummary({
           </tbody>
         </table>
       </div>
+
+      <p className="border-t border-slate-200 pt-2 text-right text-[10px] text-slate-500">
+        Agentic P&amp;L Calculator · Ian Loe, Tactics Solutions
+      </p>
     </div>
   );
 }

@@ -142,3 +142,7 @@ $$\text{CumulativeNetSaving}(m) = \sum_{k=1}^{m} \text{NetSaving}(k)$$
 - **Payback Period (months):** First month $m \in \{1, \dots, 36\}$ where $\text{CumulativeNetSaving}(m) \ge 0$.
 - **Break-even Volume (tasks/month):** $\left\lceil \frac{\text{OngoingMonthlyFixed}}{(\text{BaselineCostPerTask} - \text{VariableAgentCostPerTask}) \times (\text{SteadyStateAdoptionPct} / 100)} \right\rceil$
 - **Hours of Capacity Released:** $\sum_{m=1}^{36} \text{AutomatedTasks}(m) \times \frac{\text{EffectiveBaselineMinutes} - \text{ReviewMinutesPerTask}}{60}$
+
+## Attribution
+
+Created by Ian Loe, Tactics Solutions.

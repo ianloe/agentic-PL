@@ -576,6 +576,13 @@ export function App() {
         </div>
       </main>
 
+      <footer className="no-print border-t border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-slate-500 sm:px-6">
+          <span>Agentic P&amp;L Calculator</span>
+          <span>Created by Ian Loe, Tactics Solutions</span>
+        </div>
+      </footer>
+
       {/* Print-only A4 Executive Summary */}
       <PrintSummary
         activeResult={activeResult}
