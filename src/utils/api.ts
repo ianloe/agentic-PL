@@ -135,6 +135,59 @@ export async function deleteAdminUser(id: string): Promise<void> {
   await apiFetch(`/admin/users/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
+export type AIProvider =
+  | 'openai'
+  | 'anthropic'
+  | 'gemini'
+  | 'ollama'
+  | 'openai_compatible';
+
+export interface UserAISettings {
+  provider: AIProvider;
+  baseUrl: string;
+  model: string;
+  temperature: number;
+  systemPrompt: string;
+  hasApiKey: boolean;
+  maskedApiKey: string;
+  updatedAt: string | null;
+}
+
+export interface AIInsightsResponse {
+  insights: string;
+  provider: AIProvider;
+  model: string;
+  generatedAt: string;
+}
+
+export async function fetchAISettings(): Promise<UserAISettings> {
+  const data = await apiFetch<{ settings: UserAISettings }>('/ai/settings');
+  return data.settings;
+}
+
+export async function saveAISettings(payload: {
+  provider: AIProvider;
+  baseUrl: string;
+  model: string;
+  temperature: number;
+  systemPrompt: string;
+  apiKey?: string;
+  clearApiKey?: boolean;
+}): Promise<UserAISettings> {
+  const data = await apiFetch<{ settings: UserAISettings }>('/ai/settings', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+  return data.settings;
+}
+
+export async function generateInsights(prompt: string): Promise<AIInsightsResponse> {
+  return apiFetch<AIInsightsResponse>('/ai/insights', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+  });
+}
+
 export async function fetchCurrentUser(): Promise<AuthUser | null> {
   if (!getAuthToken()) return null;
   try {

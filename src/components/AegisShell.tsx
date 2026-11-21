@@ -10,6 +10,7 @@ import {
   RotateCcw,
   Shield,
   ShieldCheck,
+  Sparkles,
   User,
   X,
 } from 'lucide-react';
@@ -38,6 +39,7 @@ const NAV_ITEMS = [
   { to: '/agents', label: 'Workforce & Inputs', icon: Bot, end: false },
   { to: '/statement', label: 'P&L Statement', icon: FileSpreadsheet, end: false },
   { to: '/analytics', label: 'Charts & Sensitivity', icon: BarChart3, end: false },
+  { to: '/insights', label: 'AI Insights', icon: Sparkles, end: false },
   { to: '/scenarios', label: 'Scenarios', icon: GitCompare, end: false },
   { to: '/vault', label: 'Saved & History', icon: Database, end: false },
 ];

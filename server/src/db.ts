@@ -48,6 +48,17 @@ export async function initDb(): Promise<void> {
 
     CREATE INDEX IF NOT EXISTS idx_past_assessments_user
       ON past_assessments(user_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS user_ai_settings (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      provider TEXT NOT NULL DEFAULT 'openai',
+      base_url TEXT NOT NULL DEFAULT '',
+      model TEXT NOT NULL DEFAULT 'gpt-4o-mini',
+      api_key_encrypted TEXT NOT NULL DEFAULT '',
+      temperature DOUBLE PRECISION NOT NULL DEFAULT 0.2,
+      system_prompt TEXT NOT NULL DEFAULT '',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
 
   // Ensure ian@ianloe.net is promoted to admin if already present

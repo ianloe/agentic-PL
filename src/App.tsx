@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { AegisShell } from './components/AegisShell';
+import { AIInsightsPanel } from './components/AIInsightsPanel';
 import { AdminPanel } from './components/AdminPanel';
 import { AgentInputPanel } from './components/AgentInputPanel';
 import { ChartsPanel } from './components/ChartsPanel';
@@ -390,6 +391,32 @@ export function App() {
                     />
                   </div>
                 </div>
+              </div>
+            }
+          />
+
+          <Route
+            path="/insights"
+            element={
+              <div className="space-y-5">
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                    AI Insights &amp; Provider Configuration
+                  </h1>
+                  <p className="text-xs text-slate-500">
+                    Connect your preferred AI provider to generate executive P&amp;L commentary and optimisation recommendations.
+                  </p>
+                </div>
+
+                <AIInsightsPanel
+                  user={user}
+                  activeResult={activeResult}
+                  agentResults={agentResults}
+                  tornado={tornado}
+                  viewScope={viewScope}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
+                />
               </div>
             }
           />

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import cors from 'cors';
 import express from 'express';
 import crypto from 'node:crypto';
+import { type AIProvider, generateAIInsights } from './ai.js';
 import {
   type AuthenticatedRequest,
   type UserRole,
@@ -9,6 +10,7 @@ import {
   requireAuth,
   signToken,
 } from './auth.js';
+import { decryptSecret, encryptSecret, maskSecret } from './crypto.js';
 import { initDb, pool } from './db.js';
 
 const app = express();
@@ -319,6 +321,187 @@ app.delete('/api/assessments/:id', requireAuth, async (req: AuthenticatedRequest
     res.json({ deleted: true });
   } catch {
     res.status(500).json({ error: 'Failed to delete assessment.' });
+  }
+});
+
+// User AI Provider Settings
+const VALID_PROVIDERS: AIProvider[] = [
+  'openai',
+  'anthropic',
+  'gemini',
+  'ollama',
+  'openai_compatible',
+];
+
+app.get('/api/ai/settings', requireAuth, async (req: AuthenticatedRequest, res) => {
+  try {
+    const result = await pool.query<{
+      provider: AIProvider;
+      base_url: string;
+      model: string;
+      api_key_encrypted: string;
+      temperature: number;
+      system_prompt: string;
+      updated_at: string;
+    }>(
+      `SELECT provider, base_url, model, api_key_encrypted, temperature, system_prompt, updated_at
+       FROM user_ai_settings WHERE user_id = $1`,
+      [req.userId]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      res.json({
+        settings: {
+          provider: 'openai' as AIProvider,
+          baseUrl: 'https://api.openai.com/v1',
+          model: 'gpt-4o-mini',
+          temperature: 0.2,
+          systemPrompt: '',
+          hasApiKey: false,
+          maskedApiKey: '',
+          updatedAt: null,
+        },
+      });
+      return;
+    }
+
+    const decrypted = decryptSecret(row.api_key_encrypted);
+    res.json({
+      settings: {
+        provider: row.provider,
+        baseUrl: row.base_url,
+        model: row.model,
+        temperature: row.temperature,
+        systemPrompt: row.system_prompt,
+        hasApiKey: Boolean(decrypted),
+        maskedApiKey: maskSecret(decrypted),
+        updatedAt: row.updated_at,
+      },
+    });
+  } catch {
+    res.status(500).json({ error: 'Failed to load AI settings.' });
+  }
+});
+
+app.put('/api/ai/settings', requireAuth, async (req: AuthenticatedRequest, res) => {
+  const providerRaw = String(req.body?.provider ?? 'openai') as AIProvider;
+  const provider: AIProvider = VALID_PROVIDERS.includes(providerRaw) ? providerRaw : 'openai';
+  const baseUrl = String(req.body?.baseUrl ?? '').trim();
+  const model = String(req.body?.model ?? '').trim();
+  const temperature = Math.min(1.5, Math.max(0, Number(req.body?.temperature ?? 0.2)));
+  const systemPrompt = String(req.body?.systemPrompt ?? '').trim();
+  const newApiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
+  const clearApiKey = Boolean(req.body?.clearApiKey);
+
+  try {
+    const existing = await pool.query<{ api_key_encrypted: string }>(
+      'SELECT api_key_encrypted FROM user_ai_settings WHERE user_id = $1',
+      [req.userId]
+    );
+
+    let apiKeyEncrypted = existing.rows[0]?.api_key_encrypted ?? '';
+    if (clearApiKey) {
+      apiKeyEncrypted = '';
+    } else if (newApiKey) {
+      apiKeyEncrypted = encryptSecret(newApiKey);
+    }
+
+    const saved = await pool.query<{
+      provider: AIProvider;
+      base_url: string;
+      model: string;
+      api_key_encrypted: string;
+      temperature: number;
+      system_prompt: string;
+      updated_at: string;
+    }>(
+      `INSERT INTO user_ai_settings
+        (user_id, provider, base_url, model, api_key_encrypted, temperature, system_prompt, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET
+        provider = EXCLUDED.provider,
+        base_url = EXCLUDED.base_url,
+        model = EXCLUDED.model,
+        api_key_encrypted = EXCLUDED.api_key_encrypted,
+        temperature = EXCLUDED.temperature,
+        system_prompt = EXCLUDED.system_prompt,
+        updated_at = NOW()
+       RETURNING provider, base_url, model, api_key_encrypted, temperature, system_prompt, updated_at`,
+      [req.userId, provider, baseUrl, model, apiKeyEncrypted, temperature, systemPrompt]
+    );
+
+    const row = saved.rows[0];
+    const decrypted = decryptSecret(row.api_key_encrypted);
+    res.json({
+      settings: {
+        provider: row.provider,
+        baseUrl: row.base_url,
+        model: row.model,
+        temperature: row.temperature,
+        systemPrompt: row.system_prompt,
+        hasApiKey: Boolean(decrypted),
+        maskedApiKey: maskSecret(decrypted),
+        updatedAt: row.updated_at,
+      },
+    });
+  } catch {
+    res.status(500).json({ error: 'Failed to save AI settings.' });
+  }
+});
+
+app.post('/api/ai/insights', requireAuth, async (req: AuthenticatedRequest, res) => {
+  const promptContext = String(req.body?.prompt ?? '').trim();
+  if (!promptContext) {
+    res.status(400).json({ error: 'P&L summary prompt is required.' });
+    return;
+  }
+
+  try {
+    const result = await pool.query<{
+      provider: AIProvider;
+      base_url: string;
+      model: string;
+      api_key_encrypted: string;
+      temperature: number;
+      system_prompt: string;
+    }>(
+      `SELECT provider, base_url, model, api_key_encrypted, temperature, system_prompt
+       FROM user_ai_settings WHERE user_id = $1`,
+      [req.userId]
+    );
+
+    const row = result.rows[0];
+    if (!row) {
+      res.status(400).json({
+        error: 'No AI provider configured yet. Save your provider settings first.',
+      });
+      return;
+    }
+
+    const apiKey = decryptSecret(row.api_key_encrypted);
+    const insights = await generateAIInsights(
+      {
+        provider: row.provider,
+        baseUrl: row.base_url,
+        model: row.model,
+        apiKey,
+        temperature: row.temperature,
+        systemPrompt: row.system_prompt,
+      },
+      promptContext
+    );
+
+    res.json({
+      insights,
+      provider: row.provider,
+      model: row.model,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    res.status(502).json({
+      error: err instanceof Error ? err.message : 'Failed to generate AI insights.',
+    });
   }
 });
 
