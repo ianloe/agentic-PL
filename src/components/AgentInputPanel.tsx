@@ -139,7 +139,8 @@ export function AgentInputPanel({
         </div>
       )}
 
-      {/* 1. Role & Volume */}
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {/* 1. Role & Volume */}
       <fieldset className="rounded-lg border border-slate-200 bg-white p-4">
         <legend className="px-1 text-xs font-semibold tracking-wide text-slate-700 uppercase">
           1. Agent Role &amp; Volume
@@ -636,6 +637,7 @@ export function AgentInputPanel({
           </div>
         </div>
       </fieldset>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,7 @@
-import { Printer, RotateCcw, User } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
+import { AegisShell } from './components/AegisShell';
 import { AgentInputPanel } from './components/AgentInputPanel';
 import { ChartsPanel } from './components/ChartsPanel';
 import { MetricCards } from './components/MetricCards';
@@ -35,17 +37,8 @@ import {
 } from './utils/api';
 import { getDefaultState, loadPersistedState, savePersistedState } from './utils/storage';
 
-type TabKey = 'pl' | 'charts' | 'sensitivity' | 'scenarios' | 'vault';
-
-const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: 'pl', label: 'P&L Statement' },
-  { key: 'charts', label: 'Charts' },
-  { key: 'sensitivity', label: 'Sensitivity' },
-  { key: 'scenarios', label: 'Scenarios' },
-  { key: 'vault', label: 'Saved & History' },
-];
-
 export function App() {
+  const navigate = useNavigate();
   const [initial] = useState(() => loadPersistedState());
   const [agents, setAgents] = useState<AgentInput[]>(initial.agents);
   const [selectedAgentId, setSelectedAgentId] = useState<string>(initial.selectedAgentId);
@@ -54,7 +47,6 @@ export function App() {
   const [exchangeRate, setExchangeRate] = useState<number>(initial.exchangeRate);
   const [sensitivity, setSensitivity] = useState<SensitivitySettings>(initial.sensitivity);
   const [scenarios, setScenarios] = useState<SavedScenario[]>(initial.scenarios);
-  const [activeTab, setActiveTab] = useState<TabKey>('pl');
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
@@ -204,7 +196,7 @@ export function App() {
     setSelectedAgentId(found.agents[0]?.id ?? '');
     setSensitivity({ ...found.sensitivity });
     setExchangeRate(found.exchangeRate);
-    setActiveTab('pl');
+    navigate('/statement');
   };
 
   const handleDeleteScenario = (id: string) => {
@@ -223,237 +215,163 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/60 text-slate-900">
-      {/* Screen Header */}
-      <header className="no-print border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-          <div>
-            <h1 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">
-              Agentic P&amp;L Calculator
-            </h1>
-            <p className="text-xs text-slate-500">
-              Digital workforce unit economics and 36-month profit &amp; loss model
-            </p>
-          </div>
+    <>
+      <AegisShell
+        agentCount={agents.length}
+        selectedAgentName={selectedAgent.name || 'Unnamed agent'}
+        viewScope={viewScope}
+        onChangeScope={setViewScope}
+        currency={currency}
+        onChangeCurrency={setCurrency}
+        exchangeRate={exchangeRate}
+        onChangeExchangeRate={setExchangeRate}
+        onPrint={() => window.print()}
+        onReset={handleResetAll}
+        user={user}
+      >
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <div className="space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                      Executive Overview
+                    </h1>
+                    <p className="text-xs text-slate-500">
+                      {viewScope === 'portfolio'
+                        ? `Consolidated 36-month economics across ${agents.length} digital workforce agents`
+                        : selectedAgent.description}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      to="/agents"
+                      className="inline-flex items-center gap-1 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                    >
+                      Configure agents
+                      <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Link>
+                    <Link
+                      to="/statement"
+                      className="inline-flex items-center gap-1 rounded-md bg-blue-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-800"
+                    >
+                      View P&amp;L statement
+                      <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Link>
+                  </div>
+                </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Scope Switch */}
-            <div
-              role="group"
-              aria-label="Analysis scope"
-              className="inline-flex rounded-md border border-slate-200 bg-slate-50 p-0.5"
-            >
-              <button
-                type="button"
-                onClick={() => setViewScope('portfolio')}
-                className={`rounded px-2.5 py-1 text-xs font-medium ${
-                  viewScope === 'portfolio'
-                    ? 'bg-white text-blue-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Portfolio ({agents.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewScope('agent')}
-                className={`rounded px-2.5 py-1 text-xs font-medium ${
-                  viewScope === 'agent'
-                    ? 'bg-white text-blue-900 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Selected Agent
-              </button>
-            </div>
-
-            {/* Currency Toggle & FX Rate */}
-            <div className="flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1">
-              <div role="group" aria-label="Display currency" className="inline-flex">
-                <button
-                  type="button"
-                  onClick={() => setCurrency('SGD')}
-                  className={`rounded px-2 py-0.5 text-xs font-semibold ${
-                    currency === 'SGD'
-                      ? 'bg-blue-900 text-white'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  SGD
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrency('USD')}
-                  className={`rounded px-2 py-0.5 text-xs font-semibold ${
-                    currency === 'USD'
-                      ? 'bg-blue-900 text-white'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                >
-                  USD
-                </button>
-              </div>
-              <label className="flex items-center gap-1 border-l border-slate-200 pl-2 text-[11px] text-slate-600">
-                <span>1 USD =</span>
-                <input
-                  type="number"
-                  min={0.1}
-                  step={0.01}
-                  aria-label="USD to SGD exchange rate"
-                  value={exchangeRate}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    if (val > 0) setExchangeRate(val);
-                  }}
-                  className="w-14 rounded border border-slate-300 bg-white px-1.5 py-0.5 text-xs tabular-nums text-slate-900 focus:border-blue-800 focus:outline-none"
+                <MetricCards
+                  metrics={activeResult.metrics}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
                 />
-                <span>SGD</span>
-              </label>
-            </div>
 
-            {/* Print & Reset */}
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-            >
-              <Printer className="h-3.5 w-3.5" aria-hidden="true" />
-              Print summary
-            </button>
+                <PortfolioRanking
+                  agentResults={agentResults}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
+                  onSelectAgent={(id) => {
+                    setSelectedAgentId(id);
+                    setViewScope('agent');
+                    navigate('/agents');
+                  }}
+                />
 
-            <button
-              type="button"
-              onClick={handleResetAll}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-            >
-              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-              Reset
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('vault')}
-              className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-            >
-              <User className="h-3.5 w-3.5 text-blue-900" aria-hidden="true" />
-              {user ? user.name : 'Sign in'}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Two-Column Workspace */}
-      <main className="no-print mx-auto max-w-7xl px-4 py-6 sm:px-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          {/* Left Panel: Inputs */}
-          <aside aria-label="Agent assumptions" className="lg:col-span-4">
-            <AgentInputPanel
-              agents={agents}
-              selectedAgentId={selectedAgent.id}
-              onSelectAgent={(id) => {
-                setSelectedAgentId(id);
-                setViewScope('agent');
-              }}
-              onUpdateAgent={handleUpdateAgent}
-              onAddAgent={handleAddAgent}
-              onDuplicateAgent={handleDuplicateAgent}
-              onRemoveAgent={handleRemoveAgent}
-              currency={currency}
-              exchangeRate={exchangeRate}
-            />
-          </aside>
-
-          {/* Right Panel: Results */}
-          <section aria-label="Financial results" className="space-y-6 lg:col-span-8">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <div>
-                <h2 className="text-base font-semibold text-slate-900">
-                  {activeResult.agentName}
-                </h2>
-                <p className="text-xs text-slate-500">
-                  {viewScope === 'portfolio'
-                    ? `Consolidated P&L across ${agents.length} digital workforce agents`
-                    : selectedAgent.description}
-                </p>
+                <ChartsPanel
+                  result={activeResult}
+                  tornado={tornado}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
+                />
               </div>
-            </div>
+            }
+          />
 
-            <MetricCards
-              metrics={activeResult.metrics}
-              currency={currency}
-              exchangeRate={exchangeRate}
-            />
-
-            {viewScope === 'portfolio' && (
-              <PortfolioRanking
-                agentResults={agentResults}
-                currency={currency}
-                exchangeRate={exchangeRate}
-                onSelectAgent={(id) => {
-                  setSelectedAgentId(id);
-                  setViewScope('agent');
-                }}
-              />
-            )}
-
-            {/* Tabs */}
-            <div className="rounded-lg border border-slate-200 bg-white">
-              <div
-                role="tablist"
-                aria-label="Results views"
-                className="flex overflow-x-auto border-b border-slate-200 px-2"
-              >
-                {TABS.map((tab) => (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    role="tab"
-                    id={`tab-${tab.key}`}
-                    aria-selected={activeTab === tab.key}
-                    onClick={() => setActiveTab(tab.key)}
-                    className="tab-btn px-4 py-3 text-xs font-semibold text-slate-600 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-700"
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              <div className="p-4">
-                <div
-                  role="tabpanel"
-                  aria-labelledby="tab-pl"
-                  hidden={activeTab !== 'pl'}
-                >
-                  {activeTab === 'pl' && (
-                    <PLTable
-                      result={activeResult}
-                      currency={currency}
-                      exchangeRate={exchangeRate}
-                    />
-                  )}
+          <Route
+            path="/agents"
+            element={
+              <div className="space-y-5">
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                    Workforce &amp; Assumptions
+                  </h1>
+                  <p className="text-xs text-slate-500">
+                    Configure up to 10 digital workforce agents, baseline labour costs, LLM token pricing, review rates, and adoption ramps.
+                  </p>
                 </div>
 
-                <div
-                  role="tabpanel"
-                  aria-labelledby="tab-charts"
-                  hidden={activeTab !== 'charts'}
-                >
-                  {activeTab === 'charts' && (
-                    <ChartsPanel
-                      result={activeResult}
-                      tornado={tornado}
-                      currency={currency}
-                      exchangeRate={exchangeRate}
-                    />
-                  )}
+                <MetricCards
+                  metrics={
+                    (agentResults.find((r) => r.agentId === selectedAgent.id) ?? agentResults[0])
+                      .metrics
+                  }
+                  currency={currency}
+                  exchangeRate={exchangeRate}
+                />
+
+                <AgentInputPanel
+                  agents={agents}
+                  selectedAgentId={selectedAgent.id}
+                  onSelectAgent={(id) => setSelectedAgentId(id)}
+                  onUpdateAgent={handleUpdateAgent}
+                  onAddAgent={handleAddAgent}
+                  onDuplicateAgent={handleDuplicateAgent}
+                  onRemoveAgent={handleRemoveAgent}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
+                />
+              </div>
+            }
+          />
+
+          <Route
+            path="/statement"
+            element={
+              <div className="space-y-5">
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                    Profit &amp; Loss Statement
+                  </h1>
+                  <p className="text-xs text-slate-500">
+                    Monthly P&amp;L statement for {activeResult.agentName} ({currency}).
+                  </p>
                 </div>
 
-                <div
-                  role="tabpanel"
-                  aria-labelledby="tab-sensitivity"
-                  hidden={activeTab !== 'sensitivity'}
-                >
-                  {activeTab === 'sensitivity' && (
+                <MetricCards
+                  metrics={activeResult.metrics}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
+                />
+
+                <div className="rounded-lg border border-slate-200 bg-white p-4">
+                  <PLTable
+                    result={activeResult}
+                    currency={currency}
+                    exchangeRate={exchangeRate}
+                  />
+                </div>
+              </div>
+            }
+          />
+
+          <Route
+            path="/analytics"
+            element={
+              <div className="space-y-5">
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                    Charts &amp; Sensitivity Stress-Test
+                  </h1>
+                  <p className="text-xs text-slate-500">
+                    Adjust operational levers live and inspect cash flow, cost composition, and sensitivity tornado impact.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+                  <div className="xl:col-span-5">
                     <SensitivityPanel
                       sensitivity={sensitivity}
                       onChange={setSensitivity}
@@ -462,126 +380,145 @@ export function App() {
                       currency={currency}
                       exchangeRate={exchangeRate}
                     />
-                  )}
-                </div>
-
-                <div
-                  role="tabpanel"
-                  aria-labelledby="tab-scenarios"
-                  hidden={activeTab !== 'scenarios'}
-                >
-                  {activeTab === 'scenarios' && (
-                    <ScenariosPanel
-                      scenarios={scenarios}
-                      onSaveScenario={handleSaveScenario}
-                      onLoadScenario={handleLoadScenario}
-                      onDuplicateScenario={handleDuplicateScenario}
-                      onDeleteScenario={handleDeleteScenario}
+                  </div>
+                  <div className="xl:col-span-7">
+                    <ChartsPanel
+                      result={activeResult}
+                      tornado={tornado}
                       currency={currency}
                       exchangeRate={exchangeRate}
                     />
-                  )}
-                </div>
-
-                <div
-                  role="tabpanel"
-                  aria-labelledby="tab-vault"
-                  hidden={activeTab !== 'vault'}
-                >
-                  {activeTab === 'vault' && (
-                    <WorkspaceVaultPanel
-                      user={user}
-                      authLoading={authLoading}
-                      configurations={configurations}
-                      assessments={assessments}
-                      onLogin={async (email, password) => {
-                        const res = await loginUser(email, password);
-                        setUser(res.user);
-                        await loadVaultData();
-                      }}
-                      onRegister={async (email, password, name) => {
-                        const res = await registerUser(email, password, name);
-                        setUser(res.user);
-                        await loadVaultData();
-                      }}
-                      onLogout={() => {
-                        setAuthToken(null);
-                        setUser(null);
-                        setConfigurations([]);
-                        setAssessments([]);
-                      }}
-                      onSaveConfiguration={async (name) => {
-                        const payload: StoredConfigPayload = {
-                          agents,
-                          selectedAgentId,
-                          viewScope,
-                          currency,
-                          exchangeRate,
-                          sensitivity,
-                          scenarios,
-                        };
-                        await saveConfiguration(name, payload);
-                        await loadVaultData();
-                      }}
-                      onLoadConfiguration={(cfg) => {
-                        setAgents(cfg.agents);
-                        setSelectedAgentId(cfg.selectedAgentId || cfg.agents[0]?.id || '');
-                        setViewScope(cfg.viewScope);
-                        setCurrency(cfg.currency);
-                        setExchangeRate(cfg.exchangeRate);
-                        setSensitivity(cfg.sensitivity);
-                        setScenarios(cfg.scenarios ?? []);
-                        setActiveTab('pl');
-                      }}
-                      onDeleteConfiguration={async (id) => {
-                        await deleteConfiguration(id);
-                        await loadVaultData();
-                      }}
-                      onSaveAssessment={async (title) => {
-                        await saveAssessment({
-                          title,
-                          scope: viewScope,
-                          currency,
-                          exchangeRate,
-                          summaryMetrics: activeResult.metrics,
-                          snapshot: {
-                            agents,
-                            selectedAgentId,
-                            sensitivity,
-                          },
-                        });
-                        await loadVaultData();
-                      }}
-                      onLoadAssessment={(a) => {
-                        setAgents(a.snapshot_json.agents);
-                        setSelectedAgentId(
-                          a.snapshot_json.selectedAgentId || a.snapshot_json.agents[0]?.id || ''
-                        );
-                        setViewScope(a.scope);
-                        setCurrency(a.currency);
-                        setExchangeRate(a.exchange_rate);
-                        setSensitivity(a.snapshot_json.sensitivity);
-                        setActiveTab('pl');
-                      }}
-                      onDeleteAssessment={async (id) => {
-                        await deleteAssessment(id);
-                        await loadVaultData();
-                      }}
-                    />
-                  )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
-        </div>
-      </main>
+            }
+          />
 
-      <footer className="no-print border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-xs text-slate-500 sm:px-6">
-          <span>Agentic P&amp;L Calculator</span>
-          <span>Created by Ian Loe, Tactics Solutions</span>
-        </div>
-      </footer>
+          <Route
+            path="/scenarios"
+            element={
+              <div className="space-y-5">
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                    Scenario Comparison
+                  </h1>
+                  <p className="text-xs text-slate-500">
+                    Save and compare Conservative, Base, and Optimistic portfolio models side by side.
+                  </p>
+                </div>
+
+                <ScenariosPanel
+                  scenarios={scenarios}
+                  onSaveScenario={handleSaveScenario}
+                  onLoadScenario={handleLoadScenario}
+                  onDuplicateScenario={handleDuplicateScenario}
+                  onDeleteScenario={handleDeleteScenario}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
+                />
+              </div>
+            }
+          />
+
+          <Route
+            path="/vault"
+            element={
+              <div className="space-y-5">
+                <div>
+                  <h1 className="text-lg font-bold tracking-tight text-slate-900">
+                    Saved Configurations &amp; Past Assessments
+                  </h1>
+                  <p className="text-xs text-slate-500">
+                    Sign in to persist workspace configurations and audit-ready past assessments in PostgreSQL.
+                  </p>
+                </div>
+
+                <WorkspaceVaultPanel
+                  user={user}
+                  authLoading={authLoading}
+                  configurations={configurations}
+                  assessments={assessments}
+                  onLogin={async (email, password) => {
+                    const res = await loginUser(email, password);
+                    setUser(res.user);
+                    await loadVaultData();
+                  }}
+                  onRegister={async (email, password, name) => {
+                    const res = await registerUser(email, password, name);
+                    setUser(res.user);
+                    await loadVaultData();
+                  }}
+                  onLogout={() => {
+                    setAuthToken(null);
+                    setUser(null);
+                    setConfigurations([]);
+                    setAssessments([]);
+                  }}
+                  onSaveConfiguration={async (name) => {
+                    const payload: StoredConfigPayload = {
+                      agents,
+                      selectedAgentId,
+                      viewScope,
+                      currency,
+                      exchangeRate,
+                      sensitivity,
+                      scenarios,
+                    };
+                    await saveConfiguration(name, payload);
+                    await loadVaultData();
+                  }}
+                  onLoadConfiguration={(cfg) => {
+                    setAgents(cfg.agents);
+                    setSelectedAgentId(cfg.selectedAgentId || cfg.agents[0]?.id || '');
+                    setViewScope(cfg.viewScope);
+                    setCurrency(cfg.currency);
+                    setExchangeRate(cfg.exchangeRate);
+                    setSensitivity(cfg.sensitivity);
+                    setScenarios(cfg.scenarios ?? []);
+                    navigate('/');
+                  }}
+                  onDeleteConfiguration={async (id) => {
+                    await deleteConfiguration(id);
+                    await loadVaultData();
+                  }}
+                  onSaveAssessment={async (title) => {
+                    await saveAssessment({
+                      title,
+                      scope: viewScope,
+                      currency,
+                      exchangeRate,
+                      summaryMetrics: activeResult.metrics,
+                      snapshot: {
+                        agents,
+                        selectedAgentId,
+                        sensitivity,
+                      },
+                    });
+                    await loadVaultData();
+                  }}
+                  onLoadAssessment={(a) => {
+                    setAgents(a.snapshot_json.agents);
+                    setSelectedAgentId(
+                      a.snapshot_json.selectedAgentId || a.snapshot_json.agents[0]?.id || ''
+                    );
+                    setViewScope(a.scope);
+                    setCurrency(a.currency);
+                    setExchangeRate(a.exchange_rate);
+                    setSensitivity(a.snapshot_json.sensitivity);
+                    navigate('/statement');
+                  }}
+                  onDeleteAssessment={async (id) => {
+                    await deleteAssessment(id);
+                    await loadVaultData();
+                  }}
+                />
+              </div>
+            }
+          />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AegisShell>
 
       {/* Print-only A4 Executive Summary */}
       <PrintSummary
@@ -591,7 +528,7 @@ export function App() {
         currency={currency}
         exchangeRate={exchangeRate}
       />
-    </div>
+    </>
   );
 }
 
