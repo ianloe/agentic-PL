@@ -7,14 +7,16 @@ import {
   GitCompare,
   LayoutDashboard,
   Menu,
+  Moon,
   Printer,
   RotateCcw,
   Shield,
   Sparkles,
+  Sun,
   User,
   X,
 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
 import type { Currency } from '../engine/types';
 import type { AuthUser } from '../utils/api';
@@ -60,32 +62,48 @@ export function AegisShell({
   user,
 }: AegisShellProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      return localStorage.getItem('agentic_pl_theme') === 'dark' ? 'dark' : 'light';
+    } catch {
+      return 'light';
+    }
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+    try {
+      localStorage.setItem('agentic_pl_theme', theme);
+    } catch {
+      // Ignore storage errors
+    }
+  }, [theme]);
 
   const navContent = (
     <div className="flex h-full flex-col justify-between bg-slate-950 text-slate-200">
       <div>
         {/* Aegis-style Brand Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3.5">
-          <div className="min-w-0 flex-1">
-            <div className="rounded-lg bg-white px-2.5 py-1.5 shadow-xs">
+        <div className="border-b border-slate-800 px-4 py-3.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="w-full rounded-lg bg-white p-2 shadow-xs">
               <img
                 src="/logo.png"
                 alt="AEGIS Agentic P&L"
-                className="h-9 w-auto object-contain"
+                className="block h-auto w-full object-contain"
               />
             </div>
-            <p className="mt-1.5 px-0.5 text-[10px] font-medium tracking-wider text-slate-400 uppercase">
-              Tactics Solutions
-            </p>
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              aria-label="Close navigation"
+              className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={() => setMobileNavOpen(false)}
-            aria-label="Close navigation"
-            className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden"
-          >
-            <X className="h-4 w-4" aria-hidden="true" />
-          </button>
+          <p className="mt-1.5 px-0.5 text-[10px] font-medium tracking-wider text-slate-400 uppercase">
+            Tactics Solutions
+          </p>
         </div>
 
         {/* Navigation Links */}
@@ -269,6 +287,25 @@ export function AegisShell({
                   <span>SGD</span>
                 </label>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
+                aria-label={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+                className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {theme === 'light' ? (
+                  <>
+                    <Moon className="h-3.5 w-3.5" aria-hidden="true" />
+                    Dark
+                  </>
+                ) : (
+                  <>
+                    <Sun className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+                    Light
+                  </>
+                )}
+              </button>
 
               <button
                 type="button"

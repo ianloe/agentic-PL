@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   html {
@@ -7,9 +8,125 @@
     background-color: #ffffff;
   }
 
+  html.dark {
+    color: #f1f5f9;
+    background-color: #020617;
+    color-scheme: dark;
+  }
+
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Dark mode surface & typography overrides */
+html.dark .bg-white,
+html.dark .bg-white\/95 {
+  background-color: #0f172a !important;
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-50\/70 {
+  background-color: #0b1120 !important;
+}
+
+html.dark .bg-slate-100 {
+  background-color: #1e293b !important;
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-300,
+html.dark .border-slate-100 {
+  border-color: #334155 !important;
+}
+
+html.dark .divide-slate-100 > :not(:last-child),
+html.dark .divide-slate-200 > :not(:last-child) {
+  border-color: #1e293b !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-slate-700 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500,
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+html.dark .text-blue-900 {
+  color: #60a5fa !important;
+}
+
+html.dark .text-emerald-700 {
+  color: #34d399 !important;
+}
+
+html.dark .text-red-700 {
+  color: #f87171 !important;
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #475569 !important;
+}
+
+html.dark .pl-table-wrapper {
+  border-color: #334155;
+}
+
+html.dark .pl-table thead th,
+html.dark .pl-table thead th:first-child {
+  background-color: #1e293b;
+  border-bottom-color: #334155;
+  color: #f1f5f9;
+}
+
+html.dark .pl-table tbody th {
+  background-color: #0f172a;
+  border-right-color: #334155;
+}
+
+html.dark .pl-table tbody tr:hover th,
+html.dark .pl-table tbody tr:hover td {
+  background-color: #1e293b;
+}
+
+html.dark .pl-table tbody tr.pl-row-highlight th,
+html.dark .pl-table tbody tr.pl-row-highlight td {
+  background-color: #172554;
+}
+
+html.dark .ai-markdown h1,
+html.dark .ai-markdown h2,
+html.dark .ai-markdown h3,
+html.dark .ai-markdown h4,
+html.dark .ai-markdown strong {
+  color: #f8fafc;
+}
+
+html.dark .ai-markdown th {
+  background-color: #1e293b;
+  color: #f1f5f9;
+}
+
+html.dark .ai-markdown th,
+html.dark .ai-markdown td {
+  border-color: #334155;
+}
+
+html.dark .ai-markdown code {
+  background-color: #1e293b;
+  color: #e2e8f0;
 }
 
 /* Responsive P&L Table with sticky headers */
