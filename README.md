@@ -1,3 +1,7 @@
+<p align="left">
+  <img src="./public/logo.png" alt="AEGIS Agentic P&L" width="380" />
+</p>
+
 # Agentic P&L Calculator
 
 A client-side and full-stack application for executives and finance leaders to model the unit economics and 36-month profit and loss (P&L) statement of an AI agent workforce.

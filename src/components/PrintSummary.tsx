@@ -44,13 +44,16 @@ export function PrintSummary({
   return (
     <div className="print-only space-y-5 text-slate-900">
       <div className="flex items-end justify-between border-b-2 border-slate-900 pb-3">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">
-            Agentic P&amp;L Executive Summary
-          </h1>
-          <p className="text-xs text-slate-600">
-            Scope: {viewScope === 'portfolio' ? 'Consolidated Portfolio' : activeResult.agentName} · Currency: {currency} (1 USD = {exchangeRate.toFixed(2)} SGD)
-          </p>
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="AEGIS Agentic P&L" className="h-10 w-auto object-contain" />
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">
+              Agentic P&amp;L Executive Summary
+            </h1>
+            <p className="text-xs text-slate-600">
+              Scope: {viewScope === 'portfolio' ? 'Consolidated Portfolio' : activeResult.agentName} · Currency: {currency} (1 USD = {exchangeRate.toFixed(2)} SGD)
+            </p>
+          </div>
         </div>
         <p className="text-xs text-slate-500">
           Generated {GENERATED_DATE}

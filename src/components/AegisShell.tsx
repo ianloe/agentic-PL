@@ -10,7 +10,6 @@ import {
   Printer,
   RotateCcw,
   Shield,
-  ShieldCheck,
   Sparkles,
   User,
   X,
@@ -66,17 +65,18 @@ export function AegisShell({
     <div className="flex h-full flex-col justify-between bg-slate-950 text-slate-200">
       <div>
         {/* Aegis-style Brand Header */}
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-xs">
-              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+        <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3.5">
+          <div className="min-w-0 flex-1">
+            <div className="rounded-lg bg-white px-2.5 py-1.5 shadow-xs">
+              <img
+                src="/logo.png"
+                alt="AEGIS Agentic P&L"
+                className="h-9 w-auto object-contain"
+              />
             </div>
-            <div>
-              <p className="text-sm font-bold tracking-tight text-white">Agentic P&amp;L</p>
-              <p className="text-[10px] font-medium tracking-wider text-slate-400 uppercase">
-                Tactics Solutions
-              </p>
-            </div>
+            <p className="mt-1.5 px-0.5 text-[10px] font-medium tracking-wider text-slate-400 uppercase">
+              Tactics Solutions
+            </p>
           </div>
           <button
             type="button"
