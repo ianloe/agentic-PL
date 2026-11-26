@@ -6,7 +6,7 @@
 
 A client-side and full-stack application for executives and finance leaders to model the unit economics and 36-month profit and loss (P&L) statement of an AI agent workforce.
 
-For a complete section-by-section guide and detailed mathematical derivations with worked examples, see [USER_MANUAL.md](./USER_MANUAL.md). For onboarding workshops and step-by-step instructions on sourcing every input parameter accurately, see [TRAINING_GUIDE.md](./TRAINING_GUIDE.md).
+For a complete section-by-section guide and detailed mathematical derivations with worked examples, see [USER_MANUAL.md](./USER_MANUAL.md). For onboarding workshops and step-by-step instructions on sourcing every input parameter accurately, see [TRAINING_GUIDE.md](./TRAINING_GUIDE.md) and the accompanying presentation deck in [TRAINING_SLIDES.md](./TRAINING_SLIDES.md).
 
 ## Features
 
