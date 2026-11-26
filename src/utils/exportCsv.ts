@@ -1,6 +1,12 @@
 import { convertCurrency } from '../engine/calculations';
 import type { AgentPLResult, Currency } from '../engine/types';
 
+function escapeCsvCell(value: string | number): string {
+  const str = String(value);
+  const safe = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
+}
+
 export function exportPLToCsv(
   result: AgentPLResult,
   horizon: 12 | 36,
@@ -27,7 +33,7 @@ export function exportPLToCsv(
   ];
 
   const csvRows = [
-    headers.join(','),
+    headers.map(escapeCsvCell).join(','),
     ...rows.map((r) =>
       [
         r.month,
@@ -43,7 +49,9 @@ export function exportPLToCsv(
         c(r.netSaving),
         c(r.cumulativeNetSaving),
         r.hoursReleased.toFixed(1),
-      ].join(',')
+      ]
+        .map(escapeCsvCell)
+        .join(',')
     ),
   ];
 

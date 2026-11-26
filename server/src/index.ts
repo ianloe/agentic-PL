@@ -1,8 +1,8 @@
 import bcrypt from 'bcryptjs';
 import cors from 'cors';
-import express from 'express';
+import express, { type NextFunction, type Request, type Response } from 'express';
 import crypto from 'node:crypto';
-import { type AIProvider, generateAIInsights } from './ai.js';
+import { type AIProvider, generateAIInsights, validateBaseUrl } from './ai.js';
 import {
   type AuthenticatedRequest,
   type UserRole,
@@ -16,16 +16,61 @@ import { initDb, pool } from './db.js';
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
 
-app.use(cors());
+app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  next();
+});
+
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((s) => s.trim()).filter(Boolean)
+  : [];
+
+app.use(
+  cors({
+    origin: allowedOrigins.length > 0 ? allowedOrigins : false,
+  })
+);
 app.use(express.json({ limit: '2mb' }));
+
+function createRateLimiter(maxRequests: number, windowMs: number, keyFn: (req: Request) => string) {
+  const hits = new Map<string, { count: number; resetAt: number }>();
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const key = keyFn(req);
+    const now = Date.now();
+    const entry = hits.get(key);
+    if (!entry || now > entry.resetAt) {
+      hits.set(key, { count: 1, resetAt: now + windowMs });
+      next();
+      return;
+    }
+    if (entry.count >= maxRequests) {
+      res.status(429).json({ error: 'Too many requests. Please try again later.' });
+      return;
+    }
+    entry.count += 1;
+    next();
+  };
+}
+
+const loginLimiter = createRateLimiter(10, 15 * 60 * 1000, (req) => req.ip ?? 'unknown');
+const aiLimiter = createRateLimiter(
+  20,
+  5 * 60 * 1000,
+  (req) => (req as AuthenticatedRequest).userId ?? req.ip ?? 'unknown'
+);
 
 // Health check
 app.get('/api/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
     res.json({ ok: true, db: 'connected' });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: String(err) });
+  } catch {
+    res.status(500).json({ ok: false, error: 'Database unavailable' });
   }
 });
 
@@ -37,7 +82,7 @@ app.post('/api/auth/register', (_req, res) => {
 });
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const email = String(req.body?.email ?? '').trim().toLowerCase();
   const password = String(req.body?.password ?? '');
 
@@ -119,8 +164,8 @@ app.post('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
     res.status(400).json({ error: 'A valid email address is required.' });
     return;
   }
-  if (password.length < 6) {
-    res.status(400).json({ error: 'Password must be at least 6 characters.' });
+  if (password.length < 8) {
+    res.status(400).json({ error: 'Password must be at least 8 characters.' });
     return;
   }
 
@@ -386,14 +431,22 @@ app.get('/api/ai/settings', requireAuth, async (req: AuthenticatedRequest, res) 
 });
 
 app.put('/api/ai/settings', requireAuth, async (req: AuthenticatedRequest, res) => {
-  const providerRaw = String(req.body?.provider ?? 'openai') as AIProvider;
-  const provider: AIProvider = VALID_PROVIDERS.includes(providerRaw) ? providerRaw : 'openai';
-  const baseUrl = String(req.body?.baseUrl ?? '').trim();
+  const providerRaw = String(req.body?.provider ?? 'openrouter') as AIProvider;
+  const provider: AIProvider = VALID_PROVIDERS.includes(providerRaw) ? providerRaw : 'openrouter';
+  const rawBaseUrl = String(req.body?.baseUrl ?? '').trim();
   const model = String(req.body?.model ?? '').trim();
   const temperature = Math.min(1.5, Math.max(0, Number(req.body?.temperature ?? 0.2)));
   const systemPrompt = String(req.body?.systemPrompt ?? '').trim();
   const newApiKey = typeof req.body?.apiKey === 'string' ? req.body.apiKey.trim() : '';
   const clearApiKey = Boolean(req.body?.clearApiKey);
+
+  let baseUrl: string;
+  try {
+    baseUrl = validateBaseUrl(provider, rawBaseUrl);
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : 'Invalid Base URL.' });
+    return;
+  }
 
   try {
     const existing = await pool.query<{ api_key_encrypted: string }>(
@@ -451,7 +504,7 @@ app.put('/api/ai/settings', requireAuth, async (req: AuthenticatedRequest, res) 
   }
 });
 
-app.post('/api/ai/insights', requireAuth, async (req: AuthenticatedRequest, res) => {
+app.post('/api/ai/insights', requireAuth, aiLimiter, async (req: AuthenticatedRequest, res) => {
   const promptContext = String(req.body?.prompt ?? '').trim();
   if (!promptContext) {
     res.status(400).json({ error: 'P&L summary prompt is required.' });

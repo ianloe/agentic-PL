@@ -24,11 +24,85 @@ const DEFAULT_BASE_URLS: Record<AIProvider, string> = {
   openai_compatible: 'https://api.openai.com/v1',
 };
 
+const OLLAMA_ALLOWED_HOSTS = new Set(['localhost', '127.0.0.1', 'host.docker.internal']);
+
+function isPrivateOrLocalHostname(hostname: string): boolean {
+  const h = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (
+    h === 'localhost' ||
+    h === '0.0.0.0' ||
+    h === '::1' ||
+    h === 'db' ||
+    h === 'api' ||
+    h === 'web' ||
+    h.endsWith('.local') ||
+    h.endsWith('.internal')
+  ) {
+    return true;
+  }
+
+  // IPv4 private / loopback / link-local / metadata ranges
+  const ipv4 = h.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [, a, b] = ipv4.map(Number);
+    if (
+      a === 10 ||
+      a === 127 ||
+      a === 0 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    ) {
+      return true;
+    }
+  }
+
+  if (h.startsWith('fe80:') || h.startsWith('fc') || h.startsWith('fd')) {
+    return true;
+  }
+
+  return false;
+}
+
+export function validateBaseUrl(provider: AIProvider, rawUrl: string): string {
+  const candidate = (rawUrl || DEFAULT_BASE_URLS[provider]).trim().replace(/\/+$/, '');
+  let parsed: URL;
+  try {
+    parsed = new URL(candidate);
+  } catch {
+    throw new Error('Base URL must be a valid URL.');
+  }
+
+  if (parsed.username || parsed.password) {
+    throw new Error('Base URL must not contain embedded credentials.');
+  }
+
+  if (provider === 'ollama') {
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      throw new Error('Ollama Base URL must use http or https.');
+    }
+    if (!OLLAMA_ALLOWED_HOSTS.has(parsed.hostname.toLowerCase())) {
+      throw new Error('Ollama Base URL must target localhost or host.docker.internal.');
+    }
+    return candidate;
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new Error('Provider Base URL must use HTTPS.');
+  }
+  if (isPrivateOrLocalHostname(parsed.hostname)) {
+    throw new Error('Provider Base URL cannot target private or internal network addresses.');
+  }
+
+  return candidate;
+}
+
 export async function generateAIInsights(
   config: AISettingsConfig,
   userPrompt: string
 ): Promise<string> {
-  const baseUrl = (config.baseUrl || DEFAULT_BASE_URLS[config.provider]).replace(/\/+$/, '');
+  const baseUrl = validateBaseUrl(config.provider, config.baseUrl);
+  const timeoutSignal = AbortSignal.timeout(30_000);
   const systemInstruction = [
     'You are an executive finance and AI deployment advisor.',
     'Use British English spelling. Never use em dashes.',
@@ -44,6 +118,7 @@ export async function generateAIInsights(
     }
     const res = await fetch(`${baseUrl}/v1/messages`, {
       method: 'POST',
+      signal: timeoutSignal,
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': config.apiKey,
@@ -78,6 +153,7 @@ export async function generateAIInsights(
     const url = `${baseUrl}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
     const res = await fetch(url, {
       method: 'POST',
+      signal: timeoutSignal,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: systemInstruction }] },
@@ -122,6 +198,7 @@ export async function generateAIInsights(
 
   const res = await fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
+    signal: timeoutSignal,
     headers,
     body: JSON.stringify({
       model: config.model || defaultModel,

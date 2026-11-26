@@ -15,18 +15,22 @@ export function decryptSecret(payload: string): string {
   if (!payload) return '';
   const parts = payload.split(':');
   if (parts.length !== 3) return '';
-  const [ivHex, tagHex, dataHex] = parts;
-  const decipher = crypto.createDecipheriv(
-    'aes-256-gcm',
-    KEY,
-    Buffer.from(ivHex, 'hex')
-  );
-  decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
-  const decrypted = Buffer.concat([
-    decipher.update(Buffer.from(dataHex, 'hex')),
-    decipher.final(),
-  ]);
-  return decrypted.toString('utf8');
+  try {
+    const [ivHex, tagHex, dataHex] = parts;
+    const decipher = crypto.createDecipheriv(
+      'aes-256-gcm',
+      KEY,
+      Buffer.from(ivHex, 'hex')
+    );
+    decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+    const decrypted = Buffer.concat([
+      decipher.update(Buffer.from(dataHex, 'hex')),
+      decipher.final(),
+    ]);
+    return decrypted.toString('utf8');
+  } catch {
+    return '';
+  }
 }
 
 export function maskSecret(secret: string): string {
